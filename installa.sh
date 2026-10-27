@@ -63,11 +63,13 @@ registry() {
   mkdir -p "$dest"
   tmp=$(mktemp -d)
   curl -fsSL "$url" -o "$tmp/archivio"
-  case "$url" in
-    *.zip)    "$PY" -m zipfile -e "$tmp/archivio" "$dest" ;;
-    *.tar.gz) tar -xzf "$tmp/archivio" -C "$dest" ;;
-    *)        log "ERRORE: formato sconosciuto $url"; exit 1 ;;
-  esac
+  # Il formato si riconosce dal contenuto, non dal nome: node.tar.gz di essentials è in realtà uno zip
+  # (primo pod, 2026-10-27: "gzip: stdin has more than one entry").
+  if "$PY" -c 'import sys, zipfile; sys.exit(0 if zipfile.is_zipfile(sys.argv[1]) else 1)' "$tmp/archivio"; then
+    "$PY" -m zipfile -e "$tmp/archivio" "$dest"
+  else
+    tar -xzf "$tmp/archivio" -C "$dest"
+  fi
   rm -rf "$tmp"
   if [ ! -f "$dest/__init__.py" ]; then   # archivio con una cartella in cima: sposto il contenuto su
     sub=$(find "$dest" -mindepth 2 -maxdepth 2 -name __init__.py | head -n1)

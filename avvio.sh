@@ -7,6 +7,7 @@ W=/workspace
 P=$W/provisioner
 C=$W/ComfyUI
 PY=$W/venv/bin/python
+WF=$P/Workflows   # cartella dei workflow nel repository (su Linux maiuscole e minuscole contano)
 
 log() { echo "[ITACA $(date +%H:%M:%S)] $*"; }
 
@@ -20,8 +21,8 @@ fi
 
 # 3. Workflow Itaca nella cartella di ComfyUI (non sovrascrive quelli già presenti sul pod).
 mkdir -p "$C/user/default/workflows"
-if [ -d "$P/workflows" ]; then
-  cp -n "$P"/workflows/*.json "$C/user/default/workflows/" || true
+if [ -d "$WF" ]; then
+  cp -n "$WF"/*.json "$C/user/default/workflows/" || true
 fi
 
 # 4. Avvio di ComfyUI, raggiungibile dal proxy RunPod sulla porta 8188.
@@ -37,8 +38,10 @@ for i in $(seq 1 120); do
 done
 
 # 5. Controllo: tutti i nodi usati dai workflow devono essere registrati.
-if [ -d "$P/workflows" ]; then
-  "$PY" "$P/verifica_nodi.py" "$P/workflows" || log "ATTENZIONE: mancano nodi, leggi sopra e in $W/comfyui.log"
+if [ -d "$WF" ]; then
+  "$PY" "$P/verifica_nodi.py" "$WF" || log "ATTENZIONE: mancano nodi, leggi sopra e in $W/comfyui.log"
+else
+  log "ATTENZIONE: cartella $WF assente, workflow non copiati né controllati"
 fi
 
 log "Pod pronto: ComfyUI sulla porta 8188"

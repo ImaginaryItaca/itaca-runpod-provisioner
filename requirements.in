@@ -1,0 +1,107 @@
+# ITACA - librerie Python dei workflow LTX su RunPod (Task 2 del provisioner, 2026-10-27)
+#
+# Pod: runpod/base:1.4.1-cuda1281-ubuntu2404, venv in /workspace/venv con Python 3.13 (stessa minor della portable).
+# Installazione: uv pip install -r requirements.in --torch-backend cu128
+#   (torch, torchvision e torchaudio vengono presi dall'indice PyTorch cu128, il resto da PyPI).
+# Al primo pod lo script salva "uv pip freeze" in requirements.lock: Carlo lo carica nel repository e dai pod
+# successivi si installa il lock, senza risolvere di nuovo le versioni.
+#
+# Versioni = quelle installate nella portable ComfyUI 0.42.5 (python_embeded, letto il 2026-10-27), dove i pacchetti
+# di nodi si caricano. Qui ci sono solo le dipendenze dirette di ComfyUI e degli 11 pacchetti; le dipendenze
+# indirette le sceglie uv e finiscono nel lock.
+
+# --- PyTorch (build cu128 al posto della cu130 della portable) ---
+torch==2.10.0
+torchvision==0.25.0
+torchaudio==2.10.0
+
+# --- ComfyUI 0.42.5 (requirements.txt al commit 483dae4) ---
+comfyui-frontend-package==1.55.18
+comfyui-workflow-templates==0.11.96
+comfyui-embedded-docs==0.5.14
+comfy-kitchen==0.2.39
+comfy-aimdo==0.5.6
+torchsde==0.2.6
+numpy==2.4.2
+einops==0.8.2
+transformers==4.57.6
+tokenizers==0.22.2
+sentencepiece==0.2.1
+safetensors==0.7.0
+aiohttp==3.13.3
+yarl==1.22.0
+pyyaml==6.0.3
+pillow==12.1.0
+scipy==1.17.0
+tqdm==4.67.3
+psutil==7.2.2
+alembic==1.18.3
+SQLAlchemy==2.0.46
+filelock==3.20.0
+av==18.1.0
+requests==2.32.5
+simpleeval==1.0.7
+blake3==1.0.8
+kornia==0.8.2
+spandrel==0.4.1
+pydantic==2.12.5
+pydantic-settings==2.12.0
+PyOpenGL==3.1.10
+comfy-angle==0.1.1
+
+# --- ComfyUI-LTXVideo 220e1d4 ---
+colour-science==0.4.7
+diffusers==0.36.0
+huggingface_hub==0.36.2
+ninja==1.11.1.4
+openimageio==3.2.1.3
+
+# --- ComfyUI-Video-Depth-Anything a0db08e, ComfyUI-VideoHelperSuite 4d907bee ---
+# Un solo OpenCV, la versione headless: niente librerie grafiche (libGL) nel container.
+opencv-python-headless==4.13.0.90
+matplotlib==3.10.8
+imageio==2.37.2
+imageio-ffmpeg==0.6.0
+easydict==1.13
+Imath==0.0.2
+OpenEXR==3.4.6
+
+# --- comfyui_essentials 1.1.0 ---
+numba==0.64.0
+
+# --- comfyui_controlnet_aux 1.1.5 ---
+importlib_metadata==8.7.1
+scikit-image==0.26.0
+python-dateutil==2.9.0.post0
+fvcore==0.1.5.post20221221
+yapf==0.43.0
+omegaconf==2.3.0
+ftfy==6.3.1
+addict==2.4.0
+yacs==0.1.8
+trimesh[easy]==4.11.2
+albumentations==2.0.8
+scikit-learn==1.8.0
+
+# --- comfyui-impact-pack 8.28.3 ---
+segment-anything==1.0
+piexif==1.1.3
+dill==0.4.1
+
+# --- ComfyUI-KJNodes d3cfe21 ---
+color-matcher==0.6.0
+mss==10.1.0
+
+# --- ComfyUI-EasyColorCorrector 1.2.5 ---
+rawpy==0.26.1
+timm==1.0.24
+
+# --- Esclusi di proposito (nessun nodo dei due workflow li usa) ---
+# mediapipe: serve solo al nodo MediaPipe Face Mesh di controlnet_aux; porta opencv-contrib-python (con grafica).
+#   controlnet_aux carica ogni nodo a parte: senza mediapipe si perde solo quel nodo.
+# onnxruntime-gpu: DWPose usa i modelli TorchScript, che girano su GPU senza onnxruntime.
+# sam2: Impact Pack lo cerca con find_spec e senza scrive solo un avviso; PreviewBridge non lo usa.
+# rembg, transparent-background, pixeloe: essentials li importa solo dentro i nodi Remove Background e Pixelize;
+#   transparent-background e pixeloe porterebbero opencv-python (con grafica).
+# opencv-python, opencv-contrib-python: sostituiti da opencv-python-headless (stesso modulo cv2).
+# Pacchetti solo Windows della portable (triton-windows, pywin32, ...): non servono su Linux.

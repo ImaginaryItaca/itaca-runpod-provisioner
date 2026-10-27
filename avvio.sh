@@ -14,9 +14,9 @@ log() { echo "[ITACA $(date +%H:%M:%S)] $*"; }
 # 1. ComfyUI, nodi e librerie (Task 3).
 bash "$P/installa.sh"
 
-# 2. Pesi dei modelli (Task 4, quando c'è lo script).
-if [ -f "$P/pesi.sh" ]; then
-  bash "$P/pesi.sh"
+# 2. Pesi dei modelli (Task 4). Se qualcosa manca ComfyUI parte lo stesso, con un avviso.
+if [ -f "$P/pesi.py" ]; then
+  "$PY" -u "$P/pesi.py" || log "ATTENZIONE: alcuni pesi mancano, leggi sopra"
 fi
 
 # 3. Workflow Itaca nella cartella di ComfyUI (non sovrascrive quelli già presenti sul pod).
@@ -26,6 +26,8 @@ if [ -d "$WF" ]; then
 fi
 
 # 4. Avvio di ComfyUI, raggiungibile dal proxy RunPod sulla porta 8188.
+#    I preprocessori di controlnet_aux cercano i loro pesi in /workspace/aux_ckpts (scaricati da pesi.py).
+export AUX_ANNOTATOR_CKPTS_PATH=$W/aux_ckpts
 log "Avvio ComfyUI (log in $W/comfyui.log)"
 cd "$C"
 nohup "$PY" main.py --listen 0.0.0.0 --port 8188 > "$W/comfyui.log" 2>&1 &

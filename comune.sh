@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# ITACA - base comune ai due provisioner. 2026-10-28.
+# ITACA - base comune ai due provisioner. 2026-11-13: ComfyUI 0.44.2, come la portable.
 # Immagine: runpod/base:1.4.1-cuda1281-ubuntu2404.
-# Python, librerie e tutti gli 11 pacchetti sono condivisi; pesi e workflow sono separati.
+# Python, librerie e tutti i 9 pacchetti, compreso itaca_nodes, sono condivisi; pesi e workflow sono separati.
 # Questo file viene caricato da provisiona_qwen.sh o provisiona_ltx.sh.
 set -Eeuo pipefail
 
@@ -10,9 +10,10 @@ C=$W/ComfyUI
 N=$C/custom_nodes
 PY=$W/venv/bin/python
 HF=$W/venv/bin/hf
-WF=$C/user/default/workflows/Itaca
+WF=$C/user/default/workflows/ITACA
 SORGENTE=https://raw.githubusercontent.com/ImaginaryItaca/itaca-runpod-provisioner/refs/heads/main
-MARCATORE_BASE=$W/.itaca_base_20261028
+DATASET=ItacaRedemption/itaca-campo-di-grano-collaudo
+MARCATORE_BASE=$W/.itaca_base_20261113
 FILE_PID=$W/itaca_comfyui.pid
 LOG_COMFY=$W/comfyui.log
 INIZIO_ITACA=$SECONDS
@@ -68,7 +69,7 @@ prepara_ambiente() {
     git -C "$cartella" checkout --quiet "$commit"
   }
   log "Installo ComfyUI e i quattro pacchetti da Git"
-  clona "$C" "https://github.com/Comfy-Org/ComfyUI" "483dae4326356b81de05d27aca3f433dd323cc25"
+  clona "$C" "https://github.com/Comfy-Org/ComfyUI" "e6515b16ed360b01bd6548bffaca193f88f181fb"
   clona "$N/ComfyUI-LTXVideo" "https://github.com/Lightricks/ComfyUI-LTXVideo" "220e1d45aa0469f518e982102fca4dca92a61862"
   clona "$N/ComfyUI-Video-Depth-Anything" "https://github.com/yuvraj108c/ComfyUI-Video-Depth-Anything" "a0db08e63d1ea571601c45cde4aaee0acdd0544d"
   clona "$N/ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite" "4d907bee61e92c2e65af3bd6383a4e4d356126d1"
@@ -103,14 +104,17 @@ prepara_ambiente() {
     echo "$url" > "$cartella/.itaca_versione"
     rm -rf "$temporanea"
   }
-  log "Installo i sette pacchetti dal Registry"
+  log "Installo i quattro pacchetti dal Registry"
   registry "rgthree-comfy" "https://cdn.comfy.org/rgthree/rgthree-comfy/1.0.2608312342/node.zip"
   registry "comfyui_essentials" "https://cdn.comfy.org/matteo/comfyui_essentials/1.1.0/node.tar.gz"
   registry "comfyui_controlnet_aux" "https://cdn.comfy.org/fannovel16/comfyui_controlnet_aux/1.1.5/node.zip"
-  registry "comfyui-impact-pack" "https://cdn.comfy.org/drltdata/comfyui-impact-pack/8.28.3/node.zip"
-  registry "comfyui-inpaint-cropandstitch" "https://cdn.comfy.org/lquesada/comfyui-inpaint-cropandstitch/3.0.16/node.zip"
-  registry "ComfyUI-EasyColorCorrector" "https://cdn.comfy.org/itsjustregi/ComfyUI-EasyColorCorrector/1.2.5/node.zip"
   registry "comfyui-mute-bypass-by-ID" "https://cdn.comfy.org/pixelpainter/comfyui-mute-bypass-by-ID/3.0.3/node.zip"
+  # itaca_nodes (ItacaLatentProtetto, lancio 5) viene dal repository del provisioner.
+  log "Installo itaca_nodes"
+  mkdir -p "$N/itaca_nodes"
+  curl -fL --retry 3 "$SORGENTE/itaca_nodes/__init__.py" -o "$N/itaca_nodes/__init__.py.part"
+  "$PY" -c 'import sys, pathlib; compile(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"), sys.argv[1], "exec")' "$N/itaca_nodes/__init__.py.part"
+  mv "$N/itaca_nodes/__init__.py.part" "$N/itaca_nodes/__init__.py"
   
   # Dipendenze dirette dei due workflow: versioni gia rilevate nella portable.
   # Solo opencv-python-headless; escluse le librerie dei nodi non usati nell'inventario.
@@ -120,11 +124,11 @@ prepara_ambiente() {
     'torch==2.10.0' \
     'torchvision==0.25.0' \
     'torchaudio==2.10.0' \
-    'comfyui-frontend-package==1.55.18' \
-    'comfyui-workflow-templates==0.11.96' \
-    'comfyui-embedded-docs==0.5.14' \
-    'comfy-kitchen==0.2.39' \
-    'comfy-aimdo==0.5.6' \
+    'comfyui-frontend-package==1.57.6' \
+    'comfyui-workflow-templates==0.11.103' \
+    'comfyui-embedded-docs==0.5.16' \
+    'comfy-kitchen==0.2.40' \
+    'comfy-aimdo==0.6.0' \
     'torchsde==0.2.6' \
     'numpy==2.4.2' \
     'einops==0.8.2' \
@@ -177,13 +181,8 @@ prepara_ambiente() {
     'trimesh[easy]==4.11.2' \
     'albumentations==2.0.8' \
     'scikit-learn==1.8.0' \
-    'segment-anything==1.0' \
-    'piexif==1.1.3' \
-    'dill==0.4.1' \
     'color-matcher==0.6.0' \
-    'mss==10.1.0' \
-    'rawpy==0.26.1' \
-    'timm==1.0.24'
+    'mss==10.1.0'
   
   log "Verifico che PyTorch acceda alla GPU e che il token HF sia valido"
   "$PY" -c 'import torch; assert torch.cuda.is_available(), "PyTorch non vede la GPU"; print("GPU:", torch.cuda.get_device_name(0))'
@@ -208,6 +207,13 @@ scarica() {
   "$HF" download "$repo" "$file" --local-dir "$lavoro"
   mkdir -p "$cartella"
   mv "$lavoro/$file" "$cartella/$nome"
+}
+
+# Render del dataset privato su Hugging Face nella radice di input: cartelle e file
+# mantengono i nomi usati nei grafi. I file gia aggiornati non vengono riscaricati.
+scarica_dataset() {
+  log "Scarico i render del dataset $DATASET"
+  "$HF" download "$DATASET" --repo-type dataset --local-dir "$C/input"
 }
 
 workflow() {

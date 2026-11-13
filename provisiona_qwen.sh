@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# ITACA - il workflow keyframe Qwen. 2026-10-28.
+# ITACA - il workflow keyframe Qwen. 2026-11-13: grafo QWEN_EDIT.json e render del dataset.
 set -Eeuo pipefail
 source "$(dirname -- "$0")/comune.sh"
 
 prepara_ambiente
+scarica_dataset
 log "Preparo il workflow keyframe Qwen"
 scarica "Comfy-Org/Qwen-Image-Edit" "split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors" "$C/models/diffusion_models"
 scarica "Comfy-Org/Qwen-Image" "split_files/text_encoders/qwen_2.5_vl_7b.safetensors" "$C/models/text_encoders"
@@ -14,6 +15,6 @@ scarica "lllyasviel/Annotators" "ControlNetHED.pth" "$AUX_ANNOTATOR_CKPTS_PATH/l
 scarica "lllyasviel/Annotators" "mlsd_large_512_fp32.pth" "$AUX_ANNOTATOR_CKPTS_PATH/lllyasviel/Annotators"
 scarica "hr16/yolox-onnx" "yolox_l.torchscript.pt" "$AUX_ANNOTATOR_CKPTS_PATH/hr16/yolox-onnx"
 scarica "hr16/DWPose-TorchScript-BatchSize5" "dw-ll_ucoco_384_bs5.torchscript.pt" "$AUX_ANNOTATOR_CKPTS_PATH/hr16/DWPose-TorchScript-BatchSize5"
-workflow KEYFRAME_QWEN_EDIT_2511_LTX.json
+workflow QWEN_EDIT.json
 avvia_comfy
 
